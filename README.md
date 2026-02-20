@@ -26,6 +26,8 @@ Before using this devcontainer you need:
 4. **`~/.claude` configured** — Claude Code installed on the host and
    authenticated at least once so the config directory exists
 5. **`~/.gitconfig` present** with your name and email
+6. **`CLAUDE_CODE_OAUTH_TOKEN` exported** — required for Claude Code Pro/Max
+   subscriptions (see [Authentication](#authentication) below)
 
 > **Podman users:** VS Code does not automatically forward the SSH agent
 > socket for Podman. You must bind-mount the socket manually. See
@@ -70,6 +72,27 @@ uv sync
 ```
 
 The devcontainer's `postCreate.sh` sources this file automatically.
+
+## Authentication
+
+Claude Code Pro/Max subscriptions use OAuth tokens stored in the macOS
+Keychain, which containers cannot access. The devcontainer forwards the
+`CLAUDE_CODE_OAUTH_TOKEN` environment variable from your host instead.
+
+**macOS setup** — add this to your shell profile (e.g. `~/.zshrc` or
+`~/.localrc`):
+
+```bash
+export CLAUDE_CODE_OAUTH_TOKEN=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['claudeAiOauth']['accessToken'])" 2>/dev/null)
+```
+
+This extracts the OAuth access token from your Keychain on every new shell.
+The token is forwarded into the container via `containerEnv` in
+`devcontainer.json`.
+
+**Linux hosts** — Claude Code stores credentials in
+`~/.claude/.credentials.json` instead of a keychain, so the `~/.claude` mount
+should work without this step.
 
 ## Build Arguments
 
