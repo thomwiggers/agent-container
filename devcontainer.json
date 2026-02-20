@@ -1,0 +1,44 @@
+{
+  "name": "claude-container",
+  "build": {
+    "context": ".",
+    "dockerfile": "Dockerfile",
+    "target": "agents",
+    "args": {
+      "USERNAME": "vscode",
+      "NODE_VERSION": "lts/*"
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/sshd:1": {}
+  },
+  "mounts": [
+    {
+      "source": "${localEnv:HOME}/.claude",
+      "target": "/root/.claude",
+      "type": "bind",
+      "readonly": true
+    },
+    {
+      "source": "${localEnv:HOME}/.gitconfig",
+      "target": "/root/.gitconfig",
+      "type": "bind",
+      "readonly": true
+    },
+    {
+      "source": "${localEnv:HOME}/.zshrc",
+      "target": "/root/.zshrc.host",
+      "type": "bind",
+      "readonly": true
+    }
+  ],
+  "postCreateCommand": "bash .devcontainer/scripts/postCreate.sh",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh"
+      }
+    }
+  },
+  "remoteUser": "root"
+}
