@@ -32,7 +32,7 @@
       "readonly": true
     }
   ],
-  "postCreateCommand": "bash .devcontainer/scripts/postCreate.sh",
+  "postCreateCommand": "bash -c 'for p in .devcontainer/scripts/postCreate.sh scripts/postCreate.sh; do [ -f \"$p\" ] && exec bash \"$p\"; done'",
   "customizations": {
     "vscode": {
       "settings": {

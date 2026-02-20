@@ -15,10 +15,9 @@ Designed to be consumed as a git submodule at `.devcontainer/` in any project.
 
 | File | Purpose |
 |------|---------|
-| `devcontainer.json` | Root config — used when consumed as a submodule |
+| `devcontainer.json` | Config — works both as submodule and standalone |
 | `Dockerfile` | Multi-stage image definition |
 | `scripts/postCreate.sh` | One-time post-creation setup |
-| `.devcontainer/devcontainer.json` | Self-hosting config for this repo |
 
 ## Adding as a Submodule
 
