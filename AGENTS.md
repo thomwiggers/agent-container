@@ -28,7 +28,9 @@ up to date with the parent `devcontainer.json`.
 |------|---------|
 | `devcontainer.json` | Config — works both as submodule and standalone |
 | `Dockerfile` | Multi-stage image definition |
+| `config/settings.json` | Default Claude Code settings (copied into container) |
 | `scripts/postCreate.sh` | One-time post-creation setup |
+| `scripts/mcp-host-proxy.sh` | Run on HOST to proxy GitHub MCP server into the container |
 
 ## Adding as a Submodule
 

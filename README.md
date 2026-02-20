@@ -7,7 +7,8 @@ A reusable `.devcontainer` template optimised for AI-assisted development
 
 - Ubuntu 24.04 base with common dev tools
 - Claude Code pre-installed (latest via official installer)
-- Your `~/.claude/settings.json` and `~/.claude/CLAUDE.md` mounted read-only
+- Claude Code `settings.json` ships with the repo (no host secrets mounted)
+- Your `~/.claude/CLAUDE.md` mounted read-only
 - Your `~/.gitconfig` mounted read-only
 - Your `~/.zshrc` sourced inside the container
 - SSH agent forwarding via VS Code
@@ -30,9 +31,7 @@ Before using this devcontainer you need:
    (or another devcontainer-compatible IDE)
 3. **SSH agent** running on the host — either `ssh-agent` or the
    1Password SSH agent. VS Code forwards the agent socket automatically.
-4. **`~/.claude` configured** — Claude Code installed on the host and
-   authenticated at least once so `~/.claude/settings.json` exists
-5. **`~/.gitconfig` present** with your name and email
+4. **`~/.gitconfig` present** with your name and email
 6. **`CLAUDE_CODE_OAUTH_TOKEN` exported** — required for Claude Code Pro/Max
    subscriptions on macOS (see [Authentication](#authentication) below)
 
@@ -181,11 +180,58 @@ It runs two jobs:
 - **build-with-optional-tools** — builds `agents` with all optional ARGs enabled
   (`INSTALL_GEMINI`, `INSTALL_GO`, `INSTALL_RUST`)
 
-## MCP Forwarding
+## MCP Servers
 
-MCP server configurations are **not** forwarded by default. If you want to
-forward MCP config files into the container, add bind mounts to your parent
-repo's `devcontainer.json`:
+### Remote MCP (recommended for servers that need secrets)
+
+Run MCP servers on the **host** and expose them to the container over HTTP.
+The token/secret never enters the container.
+
+**1. Start the proxy on the host:**
+
+```bash
+export GITHUB_PERSONAL_ACCESS_TOKEN=ghp_...
+./scripts/mcp-host-proxy.sh          # listens on port 8765 by default
+```
+
+The script uses [supergateway](https://www.npmjs.com/package/supergateway)
+to wrap the stdio-based
+[@modelcontextprotocol/server-github](https://www.npmjs.com/package/@modelcontextprotocol/server-github)
+as an SSE endpoint. Requires Node.js on the host.
+
+**2. Configure Claude Code to connect from inside the container:**
+
+Add the remote server to your **host** `~/.claude/settings.json` (which is
+copied into the container on first creation):
+
+```json
+{
+  "mcpServers": {
+    "github": {
+      "url": "http://host.docker.internal:8765/sse"
+    }
+  }
+}
+```
+
+Or, if the container already exists, run inside the container:
+
+```bash
+claude mcp add github --transport sse http://host.docker.internal:8765/sse
+```
+
+You can adapt `mcp-host-proxy.sh` for any stdio MCP server — change the
+`--stdio` command and set the appropriate environment variables.
+
+> **Note:** `host.docker.internal` works out of the box on Docker Desktop
+> (macOS / Windows). On Linux Docker Engine it requires 20.10+; if it doesn't
+> resolve, add `"runArgs": ["--add-host=host.docker.internal:host-gateway"]`
+> to your `devcontainer.json`.
+
+### Config-file forwarding (key-stripped)
+
+Alternatively, you can forward MCP config files into the container with API
+keys stripped. Add bind mounts to your parent repo's `devcontainer.json`:
 
 ```json
 {
@@ -256,7 +302,8 @@ Podman as the container runtime. You must bind-mount the socket manually.
 ## Security Notes
 
 - API keys (`ANTHROPIC_API_KEY` etc.) are **not** forwarded into the container
-- Only `settings.json` and `CLAUDE.md` are mounted from `~/.claude` — secrets,
-  credentials, and session data stay on the host
-- MCP server configurations that require API keys will not function inside
-  the container unless explicitly mounted and re-keyed (this is intentional)
+- `settings.json` ships with the repo — the host's Claude config is not mounted
+- Only `CLAUDE.md` is mounted from `~/.claude` — secrets, credentials, and
+  session data stay on the host
+- MCP servers that need secrets should use the [remote MCP proxy](#remote-mcp-recommended-for-servers-that-need-secrets)
+  so tokens stay on the host

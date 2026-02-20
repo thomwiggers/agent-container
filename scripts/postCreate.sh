@@ -7,35 +7,25 @@ WORKSPACE_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 echo "==> claude-container: running postCreate setup"
 
 # ── Claude Code config ────────────────────────────────────────────────────────
-# Host config files are mounted read-only at ~/.claude-host/.
-# Copy only safe files to ~/.claude so Claude Code can write session state
-# without modifying host files and without exposing secrets.
+# settings.json is baked into the image at /etc/claude-container/ so the
+# container gets a known, safe configuration without mounting host secrets.
+# CLAUDE.md is copied from the host mount if available.
 CLAUDE_HOST="${HOME}/.claude-host"
 CLAUDE_HOME="${HOME}/.claude"
+IMAGE_SETTINGS="/etc/claude-container/settings.json"
 mkdir -p "${CLAUDE_HOME}"
 
-for SAFE_FILE in settings.json CLAUDE.md; do
-    HOST_FILE="${CLAUDE_HOST}/${SAFE_FILE}"
-    DEST_FILE="${CLAUDE_HOME}/${SAFE_FILE}"
-    if [[ -f "${HOST_FILE}" && ! -f "${DEST_FILE}" ]]; then
-        cp "${HOST_FILE}" "${DEST_FILE}"
-        echo "==> Copied ${SAFE_FILE} from host config"
-    fi
-done
+# Copy image settings.json on first creation (volume may already have one)
+if [[ -f "${IMAGE_SETTINGS}" && ! -f "${CLAUDE_HOME}/settings.json" ]]; then
+    cp "${IMAGE_SETTINGS}" "${CLAUDE_HOME}/settings.json"
+    echo "==> Copied settings.json from image defaults"
+fi
 
-# ── MCP config forwarding (strip API keys) ───────────────────────────────────
-# If MCP config files are mounted into ~/.claude-host/ (opt-in), copy them
-# and strip env values so server definitions are available but keys are not.
-for MCP_FILE_NAME in claude_desktop_config.json mcp_servers.json; do
-    HOST_MCP="${CLAUDE_HOST}/${MCP_FILE_NAME}"
-    DEST_MCP="${CLAUDE_HOME}/${MCP_FILE_NAME}"
-    if [[ -f "${HOST_MCP}" && ! -f "${DEST_MCP}" ]]; then
-        jq 'if .mcpServers then .mcpServers |= with_entries(
-              .value.env |= if . then with_entries(.value = "") else . end
-            ) else . end' "${HOST_MCP}" > "${DEST_MCP}"
-        echo "==> Copied ${MCP_FILE_NAME} (API keys stripped)"
-    fi
-done
+# Copy host CLAUDE.md if mounted
+if [[ -f "${CLAUDE_HOST}/CLAUDE.md" && ! -f "${CLAUDE_HOME}/CLAUDE.md" ]]; then
+    cp "${CLAUDE_HOST}/CLAUDE.md" "${CLAUDE_HOME}/CLAUDE.md"
+    echo "==> Copied CLAUDE.md from host config"
+fi
 
 # ── Claude Code permissions ──────────────────────────────────────────────────
 # Container is the isolation boundary — allow --dangerously-skip-permissions.
@@ -132,7 +122,7 @@ fi
 # ── Parent-repo customisation hook ────────────────────────────────────────────
 # When this repo is used as a submodule at .devcontainer/, the parent project
 # root is one level up from the workspace root.
-PARENT_HOOK="${WORKSPACE_ROOT}/../.devcontainer-local/postCreate.sh"
+PARENT_HOOK="${WORKSPACE_ROOT}/.devcontainer-local/postCreate.sh"
 
 if [[ -f "${PARENT_HOOK}" ]]; then
     echo "==> Found .devcontainer-local/postCreate.sh — running parent hook"

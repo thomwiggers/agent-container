@@ -20,10 +20,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 FROM base AS agents
 
 # Create directories and set ownership (combined for fewer layers)
-RUN mkdir -p /commandhistory /workspace /home/vscode/.claude /opt && \
+RUN mkdir -p /commandhistory /workspace /home/vscode/.claude /opt /etc/claude-container && \
   touch /commandhistory/.bash_history && \
   touch /commandhistory/.zsh_history && \
   chown -R vscode:vscode /commandhistory /workspace /home/vscode/.claude /opt
+
+# Bake default Claude Code settings into the image so postCreate.sh can
+# copy them into the ~/.claude volume regardless of workspace layout.
+COPY config/settings.json /etc/claude-container/settings.json
 
 # Set environment variables
 ENV DEVCONTAINER=true
