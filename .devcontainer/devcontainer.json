@@ -32,6 +32,9 @@
       "readonly": true
     }
   ],
+  "containerEnv": {
+    "CLAUDE_CODE_OAUTH_TOKEN": "${localEnv:CLAUDE_CODE_OAUTH_TOKEN}"
+  },
   "postCreateCommand": "bash -c 'for p in .devcontainer/scripts/postCreate.sh scripts/postCreate.sh; do [ -f \"$p\" ] && exec bash \"$p\"; done'",
   "customizations": {
     "vscode": {
