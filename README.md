@@ -1,4 +1,4 @@
-# claude-container
+# agent-container
 
 A reusable `.devcontainer` template optimised for AI-assisted development
 (Claude Code, Gemini CLI). Designed to be consumed as a git submodule.
@@ -39,7 +39,7 @@ Before using this devcontainer you need:
 
 ```bash
 # Add to any project
-git submodule add https://github.com/thomwiggers/claude-container.git .devcontainer
+git submodule add https://github.com/thomwiggers/agent-container.git .devcontainer
 
 # Open in VS Code — Dev Containers picks it up automatically
 code .
@@ -49,8 +49,8 @@ code .
 ## Usage: Standalone (this repo)
 
 ```bash
-git clone https://github.com/thomwiggers/claude-container.git
-cd claude-container
+git clone https://github.com/thomwiggers/agent-container.git
+cd agent-container
 code .
 # Then: "Reopen in Container"
 ```
