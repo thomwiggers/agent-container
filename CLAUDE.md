@@ -3,6 +3,11 @@
 A reusable `.devcontainer` template for isolated AI-assisted development.
 Designed to be consumed as a git submodule at `.devcontainer/` in any project.
 
+## This project (claude-container) `.devcontainer/devcontainer.json` file
+
+Due to technical reason this file can't be a symlink. Make sure it is kept
+up to date with the parent `devcontainer.json`.
+
 ## Project Goals
 
 - Provide a working devcontainer with Claude Code pre-installed

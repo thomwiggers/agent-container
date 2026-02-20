@@ -12,10 +12,10 @@ echo "==> claude-container: running postCreate setup"
 CLAUDE_HOST="${HOME}/.claude-host"
 CLAUDE_HOME="${HOME}/.claude"
 
-if [[ -d "${CLAUDE_HOST}" ]]; then
+if [[ -d "${CLAUDE_HOST}" && ! -f "${CLAUDE_HOME}/settings.json" ]]; then
     mkdir -p "${CLAUDE_HOME}"
     cp -a "${CLAUDE_HOST}/." "${CLAUDE_HOME}/"
-    echo "==> Merged Claude host config into writable location"
+    echo "==> Copied Claude host config into local config"
 fi
 
 # ── Claude Code permissions ──────────────────────────────────────────────────
@@ -23,11 +23,12 @@ fi
 CLAUDE_SETTINGS="${CLAUDE_HOME}/settings.json"
 mkdir -p "${CLAUDE_HOME}"
 if [[ -f "${CLAUDE_SETTINGS}" ]]; then
-    jq '. * {"permissions":{"defaultMode":"bypassPermissions"}}' \
+    jq '. * {"permissions":{"defaultMode":"bypassPermissions"}, "skipDangerousModePermissionPrompt": true}' \
         "${CLAUDE_SETTINGS}" > "${CLAUDE_SETTINGS}.tmp" \
         && mv "${CLAUDE_SETTINGS}.tmp" "${CLAUDE_SETTINGS}"
 else
-    echo '{"permissions":{"defaultMode":"bypassPermissions"}}' > "${CLAUDE_SETTINGS}"
+    echo '{"permissions":{"defaultMode":"bypassPermissions"},' \
+         '"skipDangerousModePermissionPrompt": true}' > "${CLAUDE_SETTINGS}"
 fi
 echo "==> Configured Claude Code to allow --dangerously-skip-permissions"
 

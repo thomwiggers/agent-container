@@ -12,6 +12,7 @@ A reusable `.devcontainer` template optimised for AI-assisted development
 - Your `~/.zshrc` sourced inside the container
 - SSH agent forwarding via VS Code
 - A hook for project-specific setup (`.devcontainer-local/`)
+- `.devcontainer` is mounted read-only for security
 
 ## Host Requirements
 
@@ -26,8 +27,8 @@ Before using this devcontainer you need:
 4. **`~/.claude` configured** — Claude Code installed on the host and
    authenticated at least once so the config directory exists
 5. **`~/.gitconfig` present** with your name and email
-6. **`CLAUDE_CODE_OAUTH_TOKEN` exported** — required for Claude Code Pro/Max
-   subscriptions (see [Authentication](#authentication) below)
+6. **`CLAUDE_CODE_CREDENTIALS` exported** — required for Claude Code Pro/Max
+   subscriptions on macOS (see [Authentication](#authentication) below)
 
 > **Podman users:** VS Code does not automatically forward the SSH agent
 > socket for Podman. You must bind-mount the socket manually. See
@@ -76,18 +77,24 @@ The devcontainer's `postCreate.sh` sources this file automatically.
 ## Authentication
 
 Claude Code Pro/Max subscriptions use OAuth tokens stored in the macOS
-Keychain, which containers cannot access. The devcontainer forwards the
-`CLAUDE_CODE_OAUTH_TOKEN` environment variable from your host instead.
+Keychain, which containers cannot access. The devcontainer forwards the full
+credentials JSON (including the refresh token) so Claude Code can renew
+access tokens without requiring an interactive login.
 
-**macOS setup** — add this to your `~/.zshrc`:
+**macOS setup** — add this to your `~/.zshrc` (or `~/.zprofile`):
 
 ```bash
-export CLAUDE_CODE_OAUTH_TOKEN=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['claudeAiOauth']['accessToken'])" 2>/dev/null)
+export CLAUDE_CODE_CREDENTIALS=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null)
 ```
 
-This extracts the OAuth access token from your Keychain on every new shell.
-The token is forwarded into the container via `containerEnv` in
-`devcontainer.json`.
+This exports the full OAuth credentials (access token, refresh token, expiry)
+from your Keychain on every new shell. The devcontainer forwards the variable
+and `postCreate.sh` writes it to `~/.claude/.credentials.json` inside the
+container.
+
+> **Tip:** If you launch VS Code from Spotlight or the Dock rather than a
+> terminal, `~/.zshrc` is not sourced. Put the export in `~/.zprofile`
+> instead, or launch VS Code with `code .` from a terminal.
 
 **Linux hosts** — Claude Code stores credentials in
 `~/.claude/.credentials.json` instead of a keychain, so the `~/.claude` mount

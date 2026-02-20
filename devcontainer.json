@@ -12,10 +12,16 @@
   "mounts": [
     "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude-host,type=bind,readonly",
     "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly",
-    "source=${localEnv:HOME}/.zshrc,target=/home/vscode/.zshrc.host,type=bind,readonly"
+    "source=${localEnv:HOME}/.zshrc,target=/home/vscode/.zshrc.host,type=bind,readonly",
+    "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
+    "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
+    "source=claude-code-gh-${devcontainerId},target=/home/vscode/.config/gh,type=volume",
+    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly",
+    "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly"
   ],
   "containerEnv": {
-    "CLAUDE_CODE_OAUTH_TOKEN": "${localEnv:CLAUDE_CODE_OAUTH_TOKEN}"
+    "CLAUDE_CODE_CREDENTIALS": "${localEnv:CLAUDE_CODE_CREDENTIALS}",
+    "HISTFILE": "/commandhistory/.zsh_history"
   },
   "postCreateCommand": "bash -c 'for p in .devcontainer/scripts/postCreate.sh scripts/postCreate.sh; do [ -f \"$p\" ] && exec bash \"$p\"; done'",
   "customizations": {
