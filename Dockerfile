@@ -3,9 +3,6 @@
 # ─── Stage 1: base ────────────────────────────────────────────────────────────
 FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04 AS base
 
-ARG USERNAME=vscode
-ARG NODE_VERSION=lts/*
-
 # Install common dev tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
@@ -20,19 +17,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ─── Stage 2: agents ──────────────────────────────────────────────────────────
 FROM base AS agents
 
-ARG USERNAME=vscode
-ARG NODE_VERSION=lts/*
-ARG NVM_DIR=/usr/local/share/nvm
-
-# Install nvm + Node.js + Claude Code
-RUN mkdir -p "${NVM_DIR}" \
-    && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | NVM_DIR="${NVM_DIR}" bash \
-    && . "${NVM_DIR}/nvm.sh" \
-    && nvm install "${NODE_VERSION}" \
-    && nvm use "${NODE_VERSION}" \
-    && nvm alias default "${NODE_VERSION}" \
-    && npm install -g @anthropic-ai/claude-code \
-    && chown -R "${USERNAME}:${USERNAME}" "${NVM_DIR}"
+# Install Claude Code as container user (official installer manages its own Node runtime)
+USER vscode
+RUN curl -fsSL https://claude.ai/install.sh | bash
+USER root
 
 # Container opens in the workspace
 WORKDIR /workspaces

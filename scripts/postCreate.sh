@@ -7,20 +7,34 @@ WORKSPACE_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 echo "==> claude-container: running postCreate setup"
 
 # ── Claude Code config ────────────────────────────────────────────────────────
-# Host config is mounted read-only at /root/.claude-host. Copy to /root/.claude
+# Host config is mounted read-only at ~/.claude-host. Copy to ~/.claude
 # so Claude Code can write session state without modifying host files.
-CLAUDE_HOST="/root/.claude-host"
-CLAUDE_HOME="/root/.claude"
+CLAUDE_HOST="${HOME}/.claude-host"
+CLAUDE_HOME="${HOME}/.claude"
 
 if [[ -d "${CLAUDE_HOST}" ]]; then
-    cp -a "${CLAUDE_HOST}" "${CLAUDE_HOME}"
-    echo "==> Copied Claude config to writable location"
+    mkdir -p "${CLAUDE_HOME}"
+    cp -a "${CLAUDE_HOST}/." "${CLAUDE_HOME}/"
+    echo "==> Merged Claude host config into writable location"
 fi
+
+# ── Claude Code permissions ──────────────────────────────────────────────────
+# Container is the isolation boundary — allow --dangerously-skip-permissions.
+CLAUDE_SETTINGS="${CLAUDE_HOME}/settings.json"
+mkdir -p "${CLAUDE_HOME}"
+if [[ -f "${CLAUDE_SETTINGS}" ]]; then
+    jq '. * {"permissions":{"defaultMode":"bypassPermissions"}}' \
+        "${CLAUDE_SETTINGS}" > "${CLAUDE_SETTINGS}.tmp" \
+        && mv "${CLAUDE_SETTINGS}.tmp" "${CLAUDE_SETTINGS}"
+else
+    echo '{"permissions":{"defaultMode":"bypassPermissions"}}' > "${CLAUDE_SETTINGS}"
+fi
+echo "==> Configured Claude Code to allow --dangerously-skip-permissions"
 
 # ── Shell config ──────────────────────────────────────────────────────────────
 # Source the host's .zshrc from inside the container
-CONTAINER_ZSHRC="/root/.zshrc"
-HOST_ZSHRC="/root/.zshrc.host"
+CONTAINER_ZSHRC="${HOME}/.zshrc"
+HOST_ZSHRC="${HOME}/.zshrc.host"
 
 if [[ -f "${HOST_ZSHRC}" ]]; then
     if ! grep -q "zshrc.host" "${CONTAINER_ZSHRC}" 2>/dev/null; then
@@ -28,18 +42,6 @@ if [[ -f "${HOST_ZSHRC}" ]]; then
         echo "# Source host zshrc (read-only mount from host)" >> "${CONTAINER_ZSHRC}"
         echo "[[ -f ${HOST_ZSHRC} ]] && source ${HOST_ZSHRC}" >> "${CONTAINER_ZSHRC}"
         echo "==> Configured .zshrc to source host config"
-    fi
-fi
-
-# ── nvm / Claude Code PATH ─────────────────────────────────────────────────────
-NVM_SH="/usr/local/share/nvm/nvm.sh"
-if [[ -f "${NVM_SH}" ]]; then
-    # Ensure nvm is sourced in .zshrc so claude is on PATH
-    if ! grep -q "nvm.sh" "${CONTAINER_ZSHRC}" 2>/dev/null; then
-        echo "" >> "${CONTAINER_ZSHRC}"
-        echo "# nvm (installed by claude-container)" >> "${CONTAINER_ZSHRC}"
-        echo "export NVM_DIR=\"/usr/local/share/nvm\"" >> "${CONTAINER_ZSHRC}"
-        echo "[[ -s \"${NVM_SH}\" ]] && source \"${NVM_SH}\"" >> "${CONTAINER_ZSHRC}"
     fi
 fi
 

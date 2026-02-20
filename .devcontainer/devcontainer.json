@@ -4,33 +4,15 @@
     "context": "..",
     "dockerfile": "../Dockerfile",
     "target": "agents",
-    "args": {
-      "USERNAME": "vscode",
-      "NODE_VERSION": "lts/*"
-    }
+    "args": {}
   },
   "features": {
     "ghcr.io/devcontainers/features/sshd:1": {}
   },
   "mounts": [
-    {
-      "source": "${localEnv:HOME}/.claude",
-      "target": "/root/.claude-host",
-      "type": "bind",
-      "readonly": true
-    },
-    {
-      "source": "${localEnv:HOME}/.gitconfig",
-      "target": "/root/.gitconfig",
-      "type": "bind",
-      "readonly": true
-    },
-    {
-      "source": "${localEnv:HOME}/.zshrc",
-      "target": "/root/.zshrc.host",
-      "type": "bind",
-      "readonly": true
-    }
+    "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude-host,type=bind,readonly",
+    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly",
+    "source=${localEnv:HOME}/.zshrc,target=/home/vscode/.zshrc.host,type=bind,readonly"
   ],
   "containerEnv": {
     "CLAUDE_CODE_OAUTH_TOKEN": "${localEnv:CLAUDE_CODE_OAUTH_TOKEN}"
@@ -46,5 +28,5 @@
       ]
     }
   },
-  "remoteUser": "root"
+  "remoteUser": "vscode"
 }
