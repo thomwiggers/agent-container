@@ -15,7 +15,7 @@
   "mounts": [
     {
       "source": "${localEnv:HOME}/.claude",
-      "target": "/root/.claude",
+      "target": "/root/.claude-host",
       "type": "bind",
       "readonly": true
     },
@@ -37,7 +37,10 @@
     "vscode": {
       "settings": {
         "terminal.integrated.defaultProfile.linux": "zsh"
-      }
+      },
+      "extensions": [
+        "anthropic.claude-code"
+      ]
     }
   },
   "remoteUser": "root"

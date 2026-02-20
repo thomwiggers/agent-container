@@ -6,6 +6,17 @@ WORKSPACE_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 echo "==> claude-container: running postCreate setup"
 
+# ── Claude Code config ────────────────────────────────────────────────────────
+# Host config is mounted read-only at /root/.claude-host. Copy to /root/.claude
+# so Claude Code can write session state without modifying host files.
+CLAUDE_HOST="/root/.claude-host"
+CLAUDE_HOME="/root/.claude"
+
+if [[ -d "${CLAUDE_HOST}" ]]; then
+    cp -a "${CLAUDE_HOST}" "${CLAUDE_HOME}"
+    echo "==> Copied Claude config to writable location"
+fi
+
 # ── Shell config ──────────────────────────────────────────────────────────────
 # Source the host's .zshrc from inside the container
 CONTAINER_ZSHRC="/root/.zshrc"
