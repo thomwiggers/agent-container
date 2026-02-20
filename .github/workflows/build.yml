@@ -1,0 +1,45 @@
+name: Build Container
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [base, agents]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: ${{ matrix.target }}
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-with-optional-tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: agents
+          push: false
+          build-args: |
+            INSTALL_GEMINI=true
+            INSTALL_GO=true
+            INSTALL_RUST=true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

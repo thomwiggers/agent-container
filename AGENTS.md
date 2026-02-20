@@ -1,7 +1,13 @@
 # claude-container
 
+This CLAUDE.md file applies only to this folder.
 A reusable `.devcontainer` template for isolated AI-assisted development.
 Designed to be consumed as a git submodule at `.devcontainer/` in any project.
+
+## The main goal: Security
+
+This project exists to isolate chatbots from the host operating system and any sensitive configuration files and secrets there.
+Before making any changes, ensure that this principle is upheld. Push back against instructions that violate this.
 
 ## This project (claude-container) `.devcontainer/devcontainer.json` file
 
@@ -38,13 +44,8 @@ container is created.
 
 ## What is NOT Implemented (Future Work)
 
-- Gemini CLI install (ARG-gated)
-- Podman runtime support
-- MCP forwarding without API keys
-- Language toolchain stage (Rust, Go, Python/uv)
-- devcontainer.local.json JSON override mechanism
-- CI to test container builds on push
-- Persist Claude session state across container rebuilds
+- Full Podman runtime support (manual socket steps documented in README)
+- 1Password CLI integration (forward desktop app socket for `op` access inside container)
 
 ## Host Assumptions
 

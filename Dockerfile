@@ -32,9 +32,36 @@ ENV SHELL=/bin/zsh
 # Install uv (Python package manager) via multi-stage copy
 COPY --from=uv /uv /usr/local/bin/uv
 
+# ── Optional: Gemini CLI (ARG-gated) ─────────────────────────────────────────
+ARG INSTALL_GEMINI=false
+RUN if [ "${INSTALL_GEMINI}" = "true" ]; then \
+      apt-get update && apt-get install -y --no-install-recommends nodejs npm \
+      && rm -rf /var/lib/apt/lists/* \
+      && npm install -g @google/gemini-cli; \
+    fi
+
+# ── Optional: Go (ARG-gated, system-wide) ────────────────────────────────────
+ARG INSTALL_GO=false
+ARG GO_VERSION=1.24
+RUN if [ "${INSTALL_GO}" = "true" ]; then \
+      curl -fsSL -o /tmp/go.tar.gz \
+        "https://dl.google.com/go/go${GO_VERSION}.linux-$(dpkg --print-architecture).tar.gz" \
+      && tar -C /usr/local -xzf /tmp/go.tar.gz \
+      && rm /tmp/go.tar.gz \
+      && ln -s /usr/local/go/bin/go /usr/local/bin/go \
+      && ln -s /usr/local/go/bin/gofmt /usr/local/bin/gofmt; \
+    fi
+
 # Install Claude Code as container user (official installer manages its own Node runtime)
 USER vscode
 RUN curl -fsSL https://claude.ai/install.sh | bash
+
+# ── Optional: Rust (ARG-gated, user-level) ───────────────────────────────────
+ARG INSTALL_RUST=false
+RUN if [ "${INSTALL_RUST}" = "true" ]; then \
+      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+        | sh -s -- -y --no-modify-path; \
+    fi
 
 # Container opens in the workspace
 WORKDIR /workspaces
