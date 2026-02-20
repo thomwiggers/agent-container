@@ -79,8 +79,7 @@ Claude Code Pro/Max subscriptions use OAuth tokens stored in the macOS
 Keychain, which containers cannot access. The devcontainer forwards the
 `CLAUDE_CODE_OAUTH_TOKEN` environment variable from your host instead.
 
-**macOS setup** — add this to your shell profile (e.g. `~/.zshrc` or
-`~/.localrc`):
+**macOS setup** — add this to your `~/.zshrc`:
 
 ```bash
 export CLAUDE_CODE_OAUTH_TOKEN=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['claudeAiOauth']['accessToken'])" 2>/dev/null)
