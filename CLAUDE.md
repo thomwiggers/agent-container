@@ -39,6 +39,7 @@ container is created.
 - Language toolchain stage (Rust, Go, Python/uv)
 - devcontainer.local.json JSON override mechanism
 - CI to test container builds on push
+- Persist Claude session state across container rebuilds
 
 ## Host Assumptions
 
