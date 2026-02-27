@@ -16,7 +16,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         vim \
         jq \
         make \
-        build-essential
+        build-essential \
+        python3 \
+        python3-venv
 
 # ─── Stage 2: agents ──────────────────────────────────────────────────────────
 FROM base AS agents
