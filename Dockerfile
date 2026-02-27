@@ -6,28 +6,26 @@ FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
 FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04 AS base
 
 # Install common dev tools
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update && apt-get install -y --no-install-recommends \
         curl \
         git \
         zsh \
         vim \
         jq \
         make \
-        build-essential \
-    && rm -rf /var/lib/apt/lists/*
+        build-essential
 
 # ─── Stage 2: agents ──────────────────────────────────────────────────────────
 FROM base AS agents
 
 # Create directories and set ownership (combined for fewer layers)
-RUN mkdir -p /commandhistory /workspace /home/vscode/.claude /opt /etc/claude-container && \
+RUN mkdir -p /commandhistory /workspace /home/vscode/.claude /opt && \
   touch /commandhistory/.bash_history && \
   touch /commandhistory/.zsh_history && \
   chown -R vscode:vscode /commandhistory /workspace /home/vscode/.claude /opt
-
-# Bake default Claude Code settings into the image so postCreate.sh can
-# copy them into the ~/.claude volume regardless of workspace layout.
-COPY config/settings.json /etc/claude-container/settings.json
 
 # Set environment variables
 ENV DEVCONTAINER=true
@@ -38,9 +36,10 @@ COPY --from=uv /uv /usr/local/bin/uv
 
 # ── Optional: Gemini CLI (ARG-gated) ─────────────────────────────────────────
 ARG INSTALL_GEMINI=false
-RUN if [ "${INSTALL_GEMINI}" = "true" ]; then \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    if [ "${INSTALL_GEMINI}" = "true" ]; then \
       apt-get update && apt-get install -y --no-install-recommends nodejs npm \
-      && rm -rf /var/lib/apt/lists/* \
       && npm install -g @google/gemini-cli; \
     fi
 

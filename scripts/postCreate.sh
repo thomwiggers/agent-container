@@ -7,24 +7,17 @@ WORKSPACE_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 echo "==> claude-container: running postCreate setup"
 
 # ── Claude Code config ────────────────────────────────────────────────────────
-# settings.json is baked into the image at /etc/claude-container/ so the
-# container gets a known, safe configuration without mounting host secrets.
-# CLAUDE.md is copied from the host mount if available.
+# The host's ~/.claude directory is bind-mounted read-only at ~/.claude-host.
+# Everything in it is copied into the container's ~/.claude volume, then the
+# bypass-permissions patch is applied on top.
 CLAUDE_HOST="${HOME}/.claude-host"
 CLAUDE_HOME="${HOME}/.claude"
-IMAGE_SETTINGS="/etc/claude-container/settings.json"
 mkdir -p "${CLAUDE_HOME}"
 
-# Copy image settings.json on first creation (volume may already have one)
-if [[ -f "${IMAGE_SETTINGS}" && ! -f "${CLAUDE_HOME}/settings.json" ]]; then
-    cp "${IMAGE_SETTINGS}" "${CLAUDE_HOME}/settings.json"
-    echo "==> Copied settings.json from image defaults"
-fi
-
-# Copy host CLAUDE.md if mounted
-if [[ -f "${CLAUDE_HOST}/CLAUDE.md" && ! -f "${CLAUDE_HOME}/CLAUDE.md" ]]; then
-    cp "${CLAUDE_HOST}/CLAUDE.md" "${CLAUDE_HOME}/CLAUDE.md"
-    echo "==> Copied CLAUDE.md from host config"
+# Copy all settings from host into the container's ~/.claude
+if [[ -d "${CLAUDE_HOST}" ]]; then
+    cp -r "${CLAUDE_HOST}/." "${CLAUDE_HOME}/"
+    echo "==> Copied Claude settings from host config"
 fi
 
 # ── Claude Code permissions ──────────────────────────────────────────────────
