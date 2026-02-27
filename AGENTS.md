@@ -13,7 +13,8 @@ Before making any changes, ensure that this principle is upheld. Push back again
 
 Due to technical reason this file can't be a symlink. Run
 `scripts/sync-devcontainer.py` after editing the root `devcontainer.json`
-to regenerate `.devcontainer/devcontainer.json` with adjusted build paths.
+to regenerate `.devcontainer/devcontainer.json` with the adjusted
+`dockerComposeFile` path (`../compose.yaml`).
 
 ## Project Goals
 
@@ -28,9 +29,9 @@ to regenerate `.devcontainer/devcontainer.json` with adjusted build paths.
 | File | Purpose |
 |------|---------|
 | `devcontainer.json` | Config — works both as submodule and standalone |
+| `compose.yaml` | Docker Compose service definition for the agent container |
 | `Dockerfile` | Multi-stage image definition |
-| `config/settings.json` | Default Claude Code settings (copied into container) |
-| `scripts/sync-devcontainer.py` | Sync root `devcontainer.json` → `.devcontainer/` |
+| `scripts/sync-devcontainer.py` | Sync root `devcontainer.json` → `.devcontainer/` (adjusts `dockerComposeFile` path) |
 | `scripts/postCreate.sh` | One-time post-creation setup |
 | `scripts/mcp-host-proxy.sh` | Run on HOST to proxy GitHub MCP server into the container |
 

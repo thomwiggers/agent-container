@@ -1,0 +1,13 @@
+services:
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: agents
+      args:
+        INSTALL_GEMINI: "false"
+        INSTALL_GO: "false"
+        GO_VERSION: "1.24"
+        INSTALL_RUST: "false"
+    # Keep container alive; devcontainer CLI attaches to this service
+    command: sleep infinity

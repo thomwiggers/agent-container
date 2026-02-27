@@ -3,7 +3,7 @@
 
 The root file is the canonical config (consumed when used as a submodule).
 The .devcontainer/ copy is adjusted so this repo can be developed from
-within its own devcontainer (build paths prepended with ../).
+within its own devcontainer (dockerComposeFile path prepended with ../).
 """
 
 import json
@@ -19,13 +19,20 @@ DEVCONTAINER_CONFIG = REPO_ROOT / ".devcontainer" / "devcontainer.json"
 def main() -> int:
     config = json.loads(ROOT_CONFIG.read_text())
 
-    # .devcontainer/ sits one level below the repo root, so build paths
-    # that are relative to devcontainer.json need a ../ prefix.
-    build = config.get("build", {})
-    for key in ("context", "dockerfile"):
-        if key in build:
-            build[key] = posixpath.normpath(posixpath.join("..", build[key]))
+    # .devcontainer/ sits one level below the repo root, so the
+    # dockerComposeFile path (relative to devcontainer.json) needs a ../ prefix.
+    dc_file = config.get("dockerComposeFile")
+    if isinstance(dc_file, str):
+        config["dockerComposeFile"] = posixpath.normpath(
+            posixpath.join("..", dc_file)
+        )
+    elif isinstance(dc_file, list):
+        config["dockerComposeFile"] = [
+            posixpath.normpath(posixpath.join("..", f)) for f in dc_file
+        ]
 
+    # Remove the .devcontainer self-mount: when self-hosting the workspace IS
+    # .devcontainer/, so this mount is redundant.
     mounts = []
     for mount in config.get("mounts", []):
         if ".devcontainer" in mount:

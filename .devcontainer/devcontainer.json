@@ -1,34 +1,26 @@
 {
   "name": "claude-container",
-  "build": {
-    "context": "..",
-    "dockerfile": "../Dockerfile",
-    "target": "agents",
-    "args": {
-      "INSTALL_GEMINI": "false",
-      "INSTALL_GO": "false",
-      "GO_VERSION": "1.24",
-      "INSTALL_RUST": "false"
-    }
-  },
+  "dockerComposeFile": "../compose.yaml",
+  "service": "agent",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "shutdownAction": "stopCompose",
   "features": {
     "ghcr.io/devcontainers/features/sshd:1": {},
     "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   },
   "mounts": [
-    "source=${localEnv:HOME}/.claude/CLAUDE.md,target=/home/vscode/.claude-host/CLAUDE.md,type=bind,readonly",
+    "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude-host,type=bind,readonly",
     "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly",
     "source=${localEnv:HOME}/.zshrc,target=/home/vscode/.zshrc.host,type=bind,readonly",
     "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
     "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
-    "source=claude-code-gh-${devcontainerId},target=/home/vscode/.config/gh,type=volume",
-    "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly"
+    "source=claude-code-gh-${devcontainerId},target=/home/vscode/.config/gh,type=volume"
   ],
   "containerEnv": {
     "CLAUDE_CODE_OAUTH_TOKEN": "${localEnv:CLAUDE_CODE_OAUTH_TOKEN}",
     "HISTFILE": "/commandhistory/.zsh_history"
   },
-  "postCreateCommand": "bash -c 'for p in .devcontainer/scripts/postCreate.sh scripts/postCreate.sh; do [ -f \"$p\" ] && exec bash \"$p\"; done'",
+  "postCreateCommand": "bash -c 'for p in \"${localWorkspaceFolder}/.devcontainer/scripts/postCreate.sh\" \"${localWorkspaceFolder}/.devcontainer-local/postCreate.sh\"; do [ -f \"$p\" ] && exec bash \"$p\"; done'",
   "customizations": {
     "vscode": {
       "settings": {

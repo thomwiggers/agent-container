@@ -88,22 +88,29 @@ in `.zshrc` so they're available in all shell sessions.
 
 ### Build overrides
 
-Parent repos can provide their own `devcontainer.json` referencing
-`.devcontainer/Dockerfile` with custom `build.args`, mounts, env, etc.:
+Parent repos can override build arguments by placing a `compose.override.yaml`
+at the project root and referencing both files in a `devcontainer.json`:
+
+```yaml
+# compose.override.yaml — layer on top of .devcontainer/compose.yaml
+services:
+  agent:
+    build:
+      args:
+        INSTALL_RUST: "true"
+        INSTALL_GO: "true"
+        GO_VERSION: "1.23"
+```
 
 ```json
 {
-  "build": {
-    "context": ".devcontainer",
-    "dockerfile": ".devcontainer/Dockerfile",
-    "args": {
-      "INSTALL_RUST": "true",
-      "INSTALL_GO": "true",
-      "GO_VERSION": "1.23"
-    }
-  }
+  "dockerComposeFile": [".devcontainer/compose.yaml", "compose.override.yaml"],
+  "service": "agent"
 }
 ```
+
+Docker Compose deep-merges the files, so you only need to specify what changes.
+You can also add new services (e.g. a database) to the override file.
 
 ## Authentication
 
