@@ -29,11 +29,12 @@ to regenerate `.devcontainer/devcontainer.json` with the adjusted
 | File | Purpose |
 |------|---------|
 | `devcontainer.json` | Config — works both as submodule and standalone |
-| `compose.yaml` | Docker Compose service definition for the agent container |
-| `Dockerfile` | Multi-stage image definition |
+| `compose.yaml` | Docker Compose service definition (agent + github-mcp sidecar) |
+| `Dockerfile` | Multi-stage image for the agent container |
+| `Dockerfile.github-mcp` | Image for the GitHub MCP sidecar service |
 | `scripts/sync-devcontainer.py` | Sync root `devcontainer.json` → `.devcontainer/` (adjusts `dockerComposeFile` path) |
 | `scripts/postCreate.sh` | One-time post-creation setup |
-| `scripts/mcp-host-proxy.sh` | Run on HOST to proxy GitHub MCP server into the container |
+| `scripts/mcp-host-proxy.sh` | Run on HOST to proxy GitHub MCP server (alternative to compose sidecar) |
 
 ## Adding as a Submodule
 

@@ -33,6 +33,14 @@ else
 fi
 echo "==> Configured Claude Code to allow --dangerously-skip-permissions"
 
+# ── GitHub MCP sidecar ────────────────────────────────────────────────────────
+# The github-mcp compose service exposes the GitHub MCP server on the internal
+# network.  Register it so Claude Code connects automatically at startup.
+jq '. * {"mcpServers": {"github": {"url": "http://github-mcp:8765/sse"}}}' \
+    "${CLAUDE_SETTINGS}" > "${CLAUDE_SETTINGS}.tmp" \
+    && mv "${CLAUDE_SETTINGS}.tmp" "${CLAUDE_SETTINGS}"
+echo "==> Registered GitHub MCP server (http://github-mcp:8765/sse)"
+
 if [[ -f "$HOME/.claude.json" ]]; then
     jq '. * {"hasCompletedOnboarding": true}' $HOME/.claude.json > $HOME/.claude.json.tmp
     mv "$HOME/.claude.json.tmp" "$HOME/.claude.json"

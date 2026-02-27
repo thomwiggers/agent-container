@@ -5,7 +5,7 @@ A reusable `.devcontainer` template optimised for AI-assisted development
 
 ## What This Provides
 
-- Ubuntu 24.04 base with common dev tools
+- Ubuntu 24.04 base with common dev tools (including `python3`)
 - Claude Code pre-installed (latest via official installer)
 - Claude Code `settings.json` ships with the repo (no host secrets mounted)
 - Your `~/.claude/CLAUDE.md` mounted read-only
@@ -13,6 +13,7 @@ A reusable `.devcontainer` template optimised for AI-assisted development
 - Your `~/.zshrc` sourced inside the container
 - SSH agent forwarding via VS Code
 - Docker-in-Docker support (build and run containers inside the devcontainer)
+- GitHub MCP server as an isolated sidecar container (set `GITHUB_PERSONAL_ACCESS_TOKEN`)
 - Optional language toolchains: Go, Rust (ARG-gated)
 - Optional Gemini CLI install (ARG-gated)
 - Automatic `--dangerously-skip-permissions` configuration (container is the isolation boundary)
@@ -189,50 +190,43 @@ It runs two jobs:
 
 ## MCP Servers
 
-### Remote MCP (recommended for servers that need secrets)
+### GitHub MCP sidecar (compose-native, recommended)
+
+The `github-mcp` service in `compose.yaml` runs the GitHub MCP server in its
+own isolated container alongside the agent. The token never touches the agent
+container's filesystem or process namespace.
+
+**Set the token in your shell before opening VS Code:**
+
+```bash
+export GITHUB_PERSONAL_ACCESS_TOKEN=ghp_...
+code .
+```
+
+`postCreate.sh` automatically registers `http://github-mcp:8765/sse` in
+Claude Code's settings, so the server is available immediately after the
+container is created.
+
+### Host-side proxy (alternative, no Docker required)
 
 Run MCP servers on the **host** and expose them to the container over HTTP.
-The token/secret never enters the container.
-
-**1. Start the proxy on the host:**
+Useful when you don't want an extra sidecar container, or need to share the
+proxy between multiple devcontainers.
 
 ```bash
 export GITHUB_PERSONAL_ACCESS_TOKEN=ghp_...
 ./scripts/mcp-host-proxy.sh          # listens on port 8765 by default
 ```
 
-The script uses [supergateway](https://www.npmjs.com/package/supergateway)
-to wrap the stdio-based
-[@modelcontextprotocol/server-github](https://www.npmjs.com/package/@modelcontextprotocol/server-github)
-as an SSE endpoint. Requires Node.js on the host.
-
-**2. Configure Claude Code to connect from inside the container:**
-
-Add the remote server to your **host** `~/.claude/settings.json` (which is
-copied into the container on first creation):
-
-```json
-{
-  "mcpServers": {
-    "github": {
-      "url": "http://host.docker.internal:8765/sse"
-    }
-  }
-}
-```
-
-Or, if the container already exists, run inside the container:
+Connect from inside the container:
 
 ```bash
 claude mcp add github --transport sse http://host.docker.internal:8765/sse
 ```
 
-You can adapt `mcp-host-proxy.sh` for any stdio MCP server — change the
-`--stdio` command and set the appropriate environment variables.
-
 > **Note:** `host.docker.internal` works out of the box on Docker Desktop
-> (macOS / Windows). On Linux Docker Engine it requires 20.10+; if it doesn't
-> resolve, add `"runArgs": ["--add-host=host.docker.internal:host-gateway"]`
+> (macOS / Windows). On Linux with Docker Engine add
+> `"runArgs": ["--add-host=host.docker.internal:host-gateway"]`
 > to your `devcontainer.json`.
 
 ### Config-file forwarding (key-stripped)

@@ -11,3 +11,14 @@ services:
         INSTALL_RUST: "false"
     # Keep container alive; devcontainer CLI attaches to this service
     command: sleep infinity
+
+  github-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile.github-mcp
+    environment:
+      # Export GITHUB_PERSONAL_ACCESS_TOKEN in your shell before opening VS Code.
+      GITHUB_PERSONAL_ACCESS_TOKEN: ${GITHUB_PERSONAL_ACCESS_TOKEN:-}
+    expose:
+      - "8765"
+    restart: unless-stopped

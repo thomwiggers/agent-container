@@ -1,0 +1,11 @@
+FROM node:lts-alpine
+
+# Pre-install supergateway and the GitHub MCP server so the container
+# starts without downloading packages at runtime.
+RUN npm install -g supergateway @modelcontextprotocol/server-github
+
+EXPOSE 8765
+
+# supergateway wraps the stdio MCP server as an SSE HTTP endpoint.
+# GITHUB_PERSONAL_ACCESS_TOKEN must be set in the environment.
+CMD ["supergateway", "--port", "8765", "--stdio", "npx @modelcontextprotocol/server-github"]
