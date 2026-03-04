@@ -23,7 +23,8 @@
   "customizations": {
     "vscode": {
       "settings": {
-        "terminal.integrated.defaultProfile.linux": "zsh"
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "claudeCode.allowDangerouslySkipPermissions": true
       },
       "extensions": [
         "anthropic.claude-code"
