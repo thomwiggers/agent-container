@@ -11,6 +11,8 @@ services:
         INSTALL_RUST: "false"
     # Keep container alive; devcontainer CLI attaches to this service
     command: sleep infinity
+    volumes:
+      - .:/workspaces/${COMPOSE_PROJECT_NAME}:cached
 
   github-mcp:
     build:
