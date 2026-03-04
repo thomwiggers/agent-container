@@ -1,10 +1,12 @@
 {
-  "name": "claude-container",
+  "name": "agent-container",
   "dockerComposeFile": "compose.yaml",
   "service": "agent",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "shutdownAction": "stopCompose",
-  "features": {},
+  "features": {
+      "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
   "mounts": [
     "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude-host,type=bind,readonly",
     "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly",
