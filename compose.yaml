@@ -12,7 +12,7 @@ services:
     # Keep container alive; devcontainer CLI attaches to this service
     command: sleep infinity
     volumes:
-      - .:/workspaces/${COMPOSE_PROJECT_NAME}:cached
+      - ${COMPOSE_WORKSPACE_ROOT:-.}:/workspace
 
   github-mcp:
     build:
