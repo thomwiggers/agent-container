@@ -19,7 +19,7 @@
     "CLAUDE_CODE_OAUTH_TOKEN": "${localEnv:CLAUDE_CODE_OAUTH_TOKEN}",
     "HISTFILE": "/commandhistory/.zsh_history"
   },
-  "postCreateCommand": "bash -c 'for p in \"${containerWorkspaceFolder}/.devcontainer/scripts/postCreate.sh\" \"${containerWorkspaceFolder}/.devcontainer-container/postCreate.sh\"; do [ -f \"$p\" ] && exec bash \"$p\"; done'",
+  "postCreateCommand": "bash -c 'for p in \"${localWorkspaceFolder}/.devcontainer/scripts/postCreate.sh\" \"${localWorkspaceFolder}/.devcontainer-local/postCreate.sh\"; do [ -f \"$p\" ] && exec bash \"$p\"; done'",
   "customizations": {
     "vscode": {
       "settings": {
