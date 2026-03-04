@@ -15,7 +15,7 @@ CLAUDE_HOME="${HOME}/.claude"
 mkdir -p "${CLAUDE_HOME}"
 
 # Copy all settings from host into the container's ~/.claude
-if [[ -d "${CLAUDE_HOST}" && -f "${CLAUDE_HOME}/settings.json" ]]; then
+if [[ -d "${CLAUDE_HOST}" && ! -f "${CLAUDE_HOME}/settings.json" ]]; then
     cp -r "${CLAUDE_HOST}/." "${CLAUDE_HOME}/"
     echo "==> Copied Claude settings from host config"
 fi
