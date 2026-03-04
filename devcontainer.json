@@ -4,10 +4,7 @@
   "service": "agent",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "shutdownAction": "stopCompose",
-  "features": {
-    "ghcr.io/devcontainers/features/sshd:1": {},
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
-  },
+  "features": {},
   "mounts": [
     "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude-host,type=bind,readonly",
     "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly",
