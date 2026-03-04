@@ -13,3 +13,4 @@
 # See: https://developer.1password.com/docs/cli/secrets-reference-syntax/
 
 CLAUDE_CODE_OAUTH_TOKEN=op://Personal/Claude Code OAuth/credential
+GITHUB_PERSONAL_ACCESS_TOKEN="op://Work/GitHub Personal Access Token/token"
