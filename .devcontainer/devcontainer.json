@@ -13,7 +13,8 @@
     "source=${localEnv:HOME}/.zshrc,target=/home/vscode/.zshrc.host,type=bind,readonly",
     "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
     "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
-    "source=claude-code-gh-${devcontainerId},target=/home/vscode/.config/gh,type=volume"
+    "source=claude-code-gh-${devcontainerId},target=/home/vscode/.config/gh,type=volume",
+    "source=${localWorkspaceFolder},target=/workspace,type=bind"
   ],
   "containerEnv": {
     "CLAUDE_CODE_OAUTH_TOKEN": "${localEnv:CLAUDE_CODE_OAUTH_TOKEN}",
