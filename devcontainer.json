@@ -20,11 +20,13 @@
     "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
     "source=claude-code-gh-${devcontainerId},target=/home/vscode/.config/gh,type=volume",
     "source=${localWorkspaceFolder}/.devcontainer,target=${containerWorkspaceFolder}/.devcontainer,type=bind,readonly",
-    "source=${localWorkspaceFolder},target=/workspace,type=bind"
+    "source=${localWorkspaceFolder},target=/workspace,type=bind",
+    "source=${localEnv:SSH_AUTH_SOCK},target=/ssh-agent,type=bind"
   ],
   "containerEnv": {
     "CLAUDE_CODE_OAUTH_TOKEN": "${localEnv:CLAUDE_CODE_OAUTH_TOKEN}",
-    "HISTFILE": "/commandhistory/.zsh_history"
+    "HISTFILE": "/commandhistory/.zsh_history",
+    "SSH_AUTH_SOCK": "/ssh-agent"
   },
   "postCreateCommand": "bash -c 'for p in \"${containerWorkspaceFolder}/.devcontainer/scripts/postCreate.sh\" \"${containerWorkspaceFolder}/.devcontainer-container/postCreate.sh\"; do [ -f \"$p\" ] && exec bash \"$p\"; done'",
   "customizations": {
