@@ -14,10 +14,22 @@ CLAUDE_HOST="${HOME}/.claude-host"
 CLAUDE_HOME="${HOME}/.claude"
 mkdir -p "${CLAUDE_HOME}"
 
-# Copy all settings from host into the container's ~/.claude
+# Copy only config (not session data) from host into the container's ~/.claude
 if [[ -d "${CLAUDE_HOST}" && ! -f "${CLAUDE_HOME}/settings.json" ]]; then
-    cp -r "${CLAUDE_HOST}/." "${CLAUDE_HOME}/"
-    echo "==> Copied Claude settings from host config"
+    for item in settings.json CLAUDE.md plugins skills cache ide mcp-needs-auth-cache.json; do
+        [[ -e "${CLAUDE_HOST}/${item}" ]] && cp -r "${CLAUDE_HOST}/${item}" "${CLAUDE_HOME}/${item}"
+    done
+    echo "==> Copied Claude config from host (settings, plugins, skills)"
+fi
+
+# ── Host home path symlink ────────────────────────────────────────────────────
+# Config files copied from a macOS host reference /Users/<name> paths.
+# Create a symlink so those paths resolve inside the container.
+HOST_HOME_PATH=$(grep -roh '/Users/[^/"]*' "${CLAUDE_HOME}" 2>/dev/null | sort -u | head -1 || true)
+if [[ -n "${HOST_HOME_PATH}" && ! -e "${HOST_HOME_PATH}" ]]; then
+    sudo mkdir -p "$(dirname "${HOST_HOME_PATH}")"
+    sudo ln -s "${HOME}" "${HOST_HOME_PATH}"
+    echo "==> Created symlink ${HOST_HOME_PATH} -> ${HOME}"
 fi
 
 # ── Claude Code permissions ──────────────────────────────────────────────────
