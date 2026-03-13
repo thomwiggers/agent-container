@@ -6,6 +6,9 @@ WORKSPACE_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 echo "==> claude-container: running postCreate setup"
 
+# Patch SSH_AUTH_SOCK permissions
+sudo chmod go+rwx /ssh-agent
+
 # ── Claude Code config ────────────────────────────────────────────────────────
 # The host's ~/.claude directory is bind-mounted read-only at ~/.claude-host.
 # Everything in it is copied into the container's ~/.claude volume, then the
