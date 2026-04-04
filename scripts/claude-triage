@@ -1,0 +1,231 @@
+#!/usr/bin/env bash
+# claude-triage — open any repository in a restricted Claude Code container
+#
+# Spins up the agent-container Docker image against any local repo for
+# triage and bug work, without requiring the target project to have a
+# .devcontainer/ setup.
+#
+# Usage:
+#   claude-triage [OPTIONS] [REPO_PATH]
+#
+# Arguments:
+#   REPO_PATH      Path to the repository to open (default: current directory)
+#
+# Options:
+#   --claude       Launch Claude Code directly instead of an interactive shell
+#   --build        Force rebuild of the local Docker image
+#   --image IMG    Use a specific image (overrides CLAUDE_TRIAGE_IMAGE)
+#   --no-pull      Skip docker pull attempt, build locally
+#   --help         Show this help
+#
+# Environment:
+#   CLAUDE_CODE_OAUTH_TOKEN   Required for Claude Pro/Max auth
+#   CLAUDE_TRIAGE_IMAGE       Docker image override (same as --image)
+#   SSH_AUTH_SOCK             Forwarded automatically if set to a valid socket
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+# ── Defaults ─────────────────────────────────────────────────────────────────
+TARGET_REPO=""
+LAUNCH_CLAUDE=false
+FORCE_BUILD=false
+NO_PULL=false
+IMAGE="${CLAUDE_TRIAGE_IMAGE:-}"
+
+# ── Argument parsing ──────────────────────────────────────────────────────────
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --claude)    LAUNCH_CLAUDE=true; shift ;;
+        --build)     FORCE_BUILD=true;  shift ;;
+        --no-pull)   NO_PULL=true;      shift ;;
+        --image)     IMAGE="$2";        shift 2 ;;
+        --image=*)   IMAGE="${1#*=}";   shift ;;
+        --help|-h)
+            sed -n '/^# claude-triage/,/^[^#]/{ s/^# \{0,1\}//; /^[^#]/d; p }' "${BASH_SOURCE[0]}"
+            exit 0
+            ;;
+        -*)
+            echo "error: unknown option: $1" >&2
+            echo "Run '$(basename "$0") --help' for usage." >&2
+            exit 1
+            ;;
+        *)
+            if [[ -z "$TARGET_REPO" ]]; then
+                TARGET_REPO="$1"
+            else
+                echo "error: unexpected argument: $1" >&2
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+TARGET_REPO="${TARGET_REPO:-.}"
+
+# ── Resolve and validate target repo ─────────────────────────────────────────
+if [[ ! -d "$TARGET_REPO" ]]; then
+    echo "error: not a directory: $TARGET_REPO" >&2
+    exit 1
+fi
+REPO_PATH="$(cd "$TARGET_REPO" && pwd)"
+
+if [[ ! -d "${REPO_PATH}/.git" ]]; then
+    echo "warning: ${REPO_PATH} does not appear to be a git repository" >&2
+fi
+
+# ── Auth token check ──────────────────────────────────────────────────────────
+if [[ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]]; then
+    echo "warning: CLAUDE_CODE_OAUTH_TOKEN is not set — Claude may not authenticate" >&2
+fi
+
+# ── Image resolution ──────────────────────────────────────────────────────────
+PREBUILT_IMAGE="ghcr.io/thomwiggers/agent-container:latest"
+LOCAL_IMAGE="claude-triage:local"
+
+if [[ -z "$IMAGE" ]]; then
+    if [[ "$NO_PULL" == false ]] && docker pull --quiet "$PREBUILT_IMAGE" 2>/dev/null; then
+        IMAGE="$PREBUILT_IMAGE"
+        echo "==> Using pre-built image: ${IMAGE}"
+    elif [[ "$FORCE_BUILD" == false ]] && docker image inspect "$LOCAL_IMAGE" &>/dev/null; then
+        IMAGE="$LOCAL_IMAGE"
+        echo "==> Using existing local image: ${IMAGE}"
+    else
+        echo "==> Building image from ${REPO_DIR}/Dockerfile …"
+        docker build --quiet -t "$LOCAL_IMAGE" --target agents "$REPO_DIR"
+        IMAGE="$LOCAL_IMAGE"
+        echo "==> Built local image: ${IMAGE}"
+    fi
+elif [[ "$FORCE_BUILD" == true ]]; then
+    echo "==> Rebuilding image from ${REPO_DIR}/Dockerfile …"
+    docker build --quiet -t "$LOCAL_IMAGE" --target agents "$REPO_DIR"
+    IMAGE="$LOCAL_IMAGE"
+    echo "==> Rebuilt local image: ${IMAGE}"
+fi
+
+# ── Container and volume naming ───────────────────────────────────────────────
+REPO_SLUG="$(basename "$REPO_PATH" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '-' | sed 's/-*$//')"
+PATH_HASH="$(printf '%s' "$REPO_PATH" | sha256sum | cut -c1-8)"
+CONTAINER_NAME="claude-triage-${REPO_SLUG}-${PATH_HASH}"
+CLAUDE_VOL="claude-triage-config-${CONTAINER_NAME}"
+HISTORY_VOL="claude-triage-history-${CONTAINER_NAME}"
+
+# ── Print session header ──────────────────────────────────────────────────────
+echo ""
+echo "  repo:      ${REPO_PATH}"
+echo "  image:     ${IMAGE}"
+echo "  container: ${CONTAINER_NAME}"
+echo "  state vol: ${CLAUDE_VOL}"
+echo ""
+
+# ── Inline bootstrap script (runs inside container before entrypoint) ─────────
+# Mirrors postCreate.sh logic, stripped of compose-specific parts.
+BOOTSTRAP='
+set -euo pipefail
+CLAUDE_HOST="$HOME/.claude-host"
+CLAUDE_HOME="$HOME/.claude"
+mkdir -p "$CLAUDE_HOME"
+
+# SSH socket permissions
+sudo chmod go+rwx /ssh-agent 2>/dev/null || true
+
+# One-time copy of host Claude config into the named volume (idempotent)
+if [[ -d "$CLAUDE_HOST" && ! -f "$CLAUDE_HOME/settings.json" ]]; then
+    for item in settings.json CLAUDE.md plugins skills cache ide mcp-needs-auth-cache.json; do
+        [[ -e "$CLAUDE_HOST/$item" ]] && cp -r "$CLAUDE_HOST/$item" "$CLAUDE_HOME/$item"
+    done
+fi
+
+# macOS /Users/<name> symlink so copied config paths resolve inside the container
+HOST_HOME_PATH=$(grep -roh "/Users/[^/\"]*" "$CLAUDE_HOME" 2>/dev/null | sort -u | head -1 || true)
+if [[ -n "$HOST_HOME_PATH" && ! -e "$HOST_HOME_PATH" ]]; then
+    sudo mkdir -p "$(dirname "$HOST_HOME_PATH")"
+    sudo ln -s "$HOME" "$HOST_HOME_PATH"
+fi
+
+# Patch settings.json — bypass permissions (container is the isolation boundary)
+SETTINGS="$CLAUDE_HOME/settings.json"
+if [[ -f "$SETTINGS" ]]; then
+    jq '"'"'. * {"permissions":{"defaultMode":"bypassPermissions"},"skipDangerousModePermissionPrompt":true}'"'" \
+        "$SETTINGS" > "$SETTINGS.tmp" && mv "$SETTINGS.tmp" "$SETTINGS"
+else
+    printf '"'"'{"permissions":{"defaultMode":"bypassPermissions"},"skipDangerousModePermissionPrompt":true}\n'"'" \
+        > "$SETTINGS"
+fi
+
+# claude.json — mark onboarding complete
+if [[ -f "$HOME/.claude.json" ]]; then
+    jq '"'"'. * {"hasCompletedOnboarding":true}'"'" \
+        "$HOME/.claude.json" > "$HOME/.claude.json.tmp" \
+        && mv "$HOME/.claude.json.tmp" "$HOME/.claude.json"
+else
+    printf '"'"'{"hasCompletedOnboarding":true,"theme":"dark","autoCompactEnabled":true,"showTurnDuration":true,"respectGitignore":true}\n'"'" \
+        > "$HOME/.claude.json"
+fi
+
+# Source host zshrc (idempotent)
+if [[ -f "$HOME/.zshrc.host" ]] && ! grep -q "zshrc.host" "$HOME/.zshrc" 2>/dev/null; then
+    printf "\n# Source host zshrc (read-only mount from host)\n[[ -f %s/.zshrc.host ]] && source %s/.zshrc.host\n" \
+        "$HOME" "$HOME" >> "$HOME/.zshrc"
+fi
+'
+
+# ── Entrypoint ────────────────────────────────────────────────────────────────
+if [[ "$LAUNCH_CLAUDE" == true ]]; then
+    ENTRYPOINT='exec claude --dangerously-skip-permissions'
+else
+    ENTRYPOINT='exec zsh -l'
+fi
+
+# ── Assemble docker run arguments ─────────────────────────────────────────────
+DOCKER_ARGS=(
+    run --rm -it
+    --name "${CONTAINER_NAME}"
+
+    # Workspace
+    --volume "${REPO_PATH}:/workspace"
+    --workdir /workspace
+
+    # Persistent Claude state and shell history (named volumes, per repo)
+    --volume "${CLAUDE_VOL}:/home/vscode/.claude"
+    --volume "${HISTORY_VOL}:/commandhistory"
+
+    # Runtime identity and history
+    --user vscode
+    --env "HISTFILE=/commandhistory/.zsh_history"
+    --env "CLAUDE_CODE_OAUTH_TOKEN=${CLAUDE_CODE_OAUTH_TOKEN:-}"
+)
+
+# Host Claude config — read-only mirror (conditional on host files existing)
+[[ -f "${HOME}/.claude/settings.json" ]] && \
+    DOCKER_ARGS+=(--volume "${HOME}/.claude/settings.json:/home/vscode/.claude-host/settings.json:ro")
+[[ -f "${HOME}/.claude/CLAUDE.md" ]] && \
+    DOCKER_ARGS+=(--volume "${HOME}/.claude/CLAUDE.md:/home/vscode/.claude-host/CLAUDE.md:ro")
+[[ -d "${HOME}/.claude/plugins" ]] && \
+    DOCKER_ARGS+=(--volume "${HOME}/.claude/plugins:/home/vscode/.claude-host/plugins:ro")
+[[ -d "${HOME}/.claude/skills" ]] && \
+    DOCKER_ARGS+=(--volume "${HOME}/.claude/skills:/home/vscode/.claude-host/skills:ro")
+[[ -f "${HOME}/.gitconfig" ]] && \
+    DOCKER_ARGS+=(--volume "${HOME}/.gitconfig:/home/vscode/.gitconfig:ro")
+[[ -f "${HOME}/.zshrc" ]] && \
+    DOCKER_ARGS+=(--volume "${HOME}/.zshrc:/home/vscode/.zshrc.host:ro")
+
+# SSH agent forwarding (optional)
+if [[ -n "${SSH_AUTH_SOCK:-}" && -S "${SSH_AUTH_SOCK}" ]]; then
+    DOCKER_ARGS+=(
+        --volume "${SSH_AUTH_SOCK}:/ssh-agent"
+        --env "SSH_AUTH_SOCK=/ssh-agent"
+    )
+fi
+
+# Image and entrypoint
+DOCKER_ARGS+=(
+    "${IMAGE}"
+    bash -c "${BOOTSTRAP}; ${ENTRYPOINT}"
+)
+
+# ── Launch ────────────────────────────────────────────────────────────────────
+exec docker "${DOCKER_ARGS[@]}"
