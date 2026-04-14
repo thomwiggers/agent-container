@@ -8,7 +8,6 @@ within its own devcontainer (dockerComposeFile path prepended with ../).
 
 import json
 import posixpath
-import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -23,9 +22,7 @@ def main() -> int:
     # dockerComposeFile path (relative to devcontainer.json) needs a ../ prefix.
     dc_file = config.get("dockerComposeFile")
     if isinstance(dc_file, str):
-        config["dockerComposeFile"] = posixpath.normpath(
-            posixpath.join("..", dc_file)
-        )
+        config["dockerComposeFile"] = posixpath.normpath(posixpath.join("..", dc_file))
     elif isinstance(dc_file, list):
         config["dockerComposeFile"] = [
             posixpath.normpath(posixpath.join("..", f)) for f in dc_file
@@ -41,8 +38,10 @@ def main() -> int:
     config["mounts"] = mounts
 
     DEVCONTAINER_CONFIG.write_text(json.dumps(config, indent=2) + "\n")
-    print(f"Synced {ROOT_CONFIG.relative_to(REPO_ROOT)}"
-          f" -> {DEVCONTAINER_CONFIG.relative_to(REPO_ROOT)}")
+    print(
+        f"Synced {ROOT_CONFIG.relative_to(REPO_ROOT)}"
+        f" -> {DEVCONTAINER_CONFIG.relative_to(REPO_ROOT)}"
+    )
     return 0
 
 
